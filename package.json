@@ -1,0 +1,19 @@
+{
+  "name": "mpdom",
+  "version": "0.0.1",
+  "description": "用于小程序的 dom api",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SyMind/mpdom.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SyMind/mpdom/issues"
+  },
+  "homepage": "https://github.com/SyMind/mpdom#readme"
+}

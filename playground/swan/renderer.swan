@@ -1,0 +1,17 @@
+<template name="root">
+    <block s-for="{{root}}" s-key="uid">
+        <template is="{{item.type}}" data="{{{ node: item }}}" />
+    </block>
+</template>
+
+<template name="view">
+	<view class="{{node.class}}" style="{{node.style}}">
+		<block s-for="{{node.children}}" s-key="uid">
+			<block s-if="{{item.type === 'words'}}">{{item.children}}</block>
+			<block s-else>
+            	<template is="{{item.type}}" data="{{{ node: item }}}" />
+			</block>
+        </block>
+	</view>
+</template>
+
