@@ -1,2 +1,3 @@
-# mpdom
-用于小程序的 dom api
+# how-taro3-work
+
+剖析 Taro3 的内部工作原理。
