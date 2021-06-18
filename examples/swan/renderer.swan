@@ -1,15 +1,15 @@
 <template name="root">
     <block s-for="{{root}}" s-key="uid">
-        <template is="{{item.type}}" data="{{{ node: item }}}" />
+        <template is="{{item.type}}" data="{{{ el: item }}}" />
     </block>
 </template>
 
 <template name="view">
-	<view class="{{node.class}}" style="{{node.style}}">
-		<block s-for="{{node.children}}" s-key="uid">
+	<view class="{{el.class}}" style="{{el.style}}">
+		<block s-for="{{el.children}}" s-key="uid">
 			<block s-if="{{item.type === 'words'}}">{{item.children}}</block>
 			<block s-else>
-            	<template is="{{item.type}}" data="{{{ node: item }}}" />
+            	<template is="{{item.type}}" data="{{{ el: item }}}" />
 			</block>
         </block>
 	</view>
