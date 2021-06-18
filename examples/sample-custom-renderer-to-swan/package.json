@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "react": "^17.0.2",
     "react-reconciler": "^0.26.2"
   }
 }

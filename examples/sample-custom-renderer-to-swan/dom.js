@@ -1,8 +1,8 @@
 class Node {
     nodes = []
 
-    constructor(instance) {
-        this.instance = instance;
+    constructor(pageInst) {
+        this.pageInst = pageInst;
     }
 
     get value() {
@@ -17,7 +17,7 @@ class Node {
         this.nodes.push(el);
 
         if (this.parentEl) {
-            this.instance.setData({
+            this.pageInst.setData({
                 key: `${this.parentEl.path}[${this.nodes.length - 1}]`,
                 value: el.value
             });
@@ -33,17 +33,21 @@ class WordsElement extends Node {
         };
     }
 
-    constructor(instance, text) {
-        super(instance)
+    constructor(pageInst, text) {
+        super(pageInst)
         this.type = 'words';
         this.text = text;
     }
 }
 
 class ViewElement extends Node {
-    constructor(instance) {
-        super(instance)
+    constructor(pageInst) {
+        super(pageInst)
         this.type = 'view';
+    }
+
+    set textContent(text) {
+        this.appendChild(new WordsElement(this.pageInst, text))
     }
 }
 
@@ -52,31 +56,31 @@ class Document {
 
     nodes = []
 
-    constructor(instance) {
-        this.instance = instance
+    constructor(pageInst) {
+        this.pageInst = pageInst
     }
 
     createElement(localName) {
         if (localName === 'view') {
-            return new ViewElement(this.instance);
+            return new ViewElement(this.pageInst);
         }
         throw new Error('not support element type');
     }
 
     createTextNode(text) {
-        return new WordsElement(this.instance, text);
+        return new WordsElement(this.pageInst, text);
     }
 
     appendChild(el) {
         el.parentEl = this;
         this.nodes.push(el);
 
-        this.instance.setData({
+        this.pageInst.setData({
             [`${this.path}[${this.nodes.length - 1}]`]: el.value
         });
     }
 }
 
-export default function createDocument(instance) {
-    return new Document(instance)
+export default function createDocument(pageInst) {
+    return new Document(pageInst)
 }
