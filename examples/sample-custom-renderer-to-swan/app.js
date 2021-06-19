@@ -1,18 +1,27 @@
-/**
- * @file app.js
- * @author swan
- */
+import React, {Component} from 'react';
+import {createSwanApp} from '../../lib/runtime';
 
-/* globals swan */
-
-App({
-    onLaunch(options) {
-        // do something when launch
-    },
-    onShow(options) {
-        // do something when show
-    },
-    onHide() {
-        // do something when hide
+class ReactApp extends Component {
+    constructor() {
+        super()
+        console.log('App constructor')
     }
-});
+
+    onLaunch(options) {
+        console.log('onLaunch', options)
+    }
+
+    onShow(options) {
+        console.log('onShow', options)
+    }
+
+    onHide() {
+        console.log('onHide')
+    }
+
+    render() {
+        return this.props.children;
+    }
+}
+
+App(createSwanApp(ReactApp))

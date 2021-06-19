@@ -1,7 +1,7 @@
 <template name="root">
-    <block s-for="{{root}}" s-key="uid">
-        <template is="{{item.type}}" data="{{{ el: item }}}" />
-    </block>
+  <block s-for="{{root}}" s-key="uid">
+    <template is="{{item.type}}" data="{{{ el: item }}}" />
+  </block>
 </template>
 
 <template name="view">
@@ -9,9 +9,8 @@
 		<block s-for="{{el.children}}" s-key="uid">
 			<block s-if="{{item.type === 'words'}}">{{item.children}}</block>
 			<block s-else>
-            	<template is="{{item.type}}" data="{{{ el: item }}}" />
+        <template is="{{item.type}}" data="{{{ el: item }}}" />
 			</block>
-        </block>
+    </block>
 	</view>
 </template>
-
