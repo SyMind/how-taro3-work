@@ -14,7 +14,7 @@ module.exports = class SwanWebpackPlugin {
       const request = loaderUtils.urlToRequest(pageEntry);
       new webpack.EntryPlugin(
         context,
-        request,
+        `${require.resolve('./swanConfigFileLoader')}!${request}`,
         pageEntry
       ).apply(compiler);
     }

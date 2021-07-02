@@ -19,5 +19,8 @@
   "dependencies": {
     "react": "^17.0.2",
     "react-reconciler": "^0.26.2"
+  },
+  "devDependencies": {
+    "fs-extra": "^10.0.0"
   }
 }
