@@ -14,3 +14,7 @@
     </block>
 	</view>
 </template>
+
+<template name="input">
+	<input value="{= el.value =}" bindinput="invokeEventListeners" />
+</template>
