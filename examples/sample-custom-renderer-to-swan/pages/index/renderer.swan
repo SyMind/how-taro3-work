@@ -1,5 +1,5 @@
 <template name="root">
-  <block s-for="{{root}}" s-key="uid">
+  <block s-for="{{root.children}}" s-key="uid">
     <template is="{{item.type}}" data="{{{ el: item }}}" />
   </block>
 </template>
