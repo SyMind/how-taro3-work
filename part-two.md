@@ -26,7 +26,7 @@ interface MiniTextData {
 type MiniData = MiniElementData | MiniTextData
 ```
 
-其中的部分属性键值使用 Shortcuts 枚举，是为了减小生成的小程序模板体积，在之后我们编写小程序模板来渲染节点树数据时您就会明白。
+其中的部分属性键值使用 Shortcuts 枚举，是为了减小生成的小程序模板体积和 setData 的数据大小，在之后我们编写小程序模板来渲染节点树数据时您就会明白。
 
 小程序将数据从逻辑层发送至视图层，总是需要调用 `setData` API 的。当我们使用 Taro 的 `build` 命令将 Taro 代码编译为小程序端的代码时，在产出目录下的 `taro.js` 文件中搜索 `setData` API，并使用 console.log 在方法调用前将 data 变量打印出来，您会看到如下的数据：
 
@@ -41,7 +41,7 @@ type MiniData = MiniElementData | MiniTextData
 }
 ```
 
-我们的实现不考虑生成模板的体积，现在让我们简化一下节点树的类型定义：
+我们的实现不考虑生成模板的体积，现在让我们自己来定义一下节点树的类型定义：
 
 ```typescript
 interface MiniElementData {
@@ -56,10 +56,9 @@ interface MiniElementData {
 ```javascript
 Page({
   data: {
-    // root 为 MiniElementData[] 类型
-    root: 
+    root: {
+      children: []
+    }
   }
 })
 ```
-
-

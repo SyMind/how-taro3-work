@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import { createSwanPage } from '../../../../lib/runtime';
 
 function SwanPage() {
-  const [value, setValue] = useState('333')
+  const [value, setValue] = useState('')
   console.log('value', value)
 
   return React.createElement(
