@@ -1,7 +1,7 @@
 {
   "name": "how-taro3-work",
   "version": "0.0.1",
-  "description": "用于小程序的 dom api",
+  "description": "taro3 的内部工作原理",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,7 +11,7 @@
     "url": "git+https://github.com/SyMind/how-taro3-work.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/SyMind/how-taro3-work/issues"
   },
