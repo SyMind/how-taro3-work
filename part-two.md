@@ -1,8 +1,10 @@
 # Part-II
 
-在上一节中，我们提到了 taro3 自己在小程序环境中实现了一套精简的 DOM API，然后依赖它来实现用于渲染小程序的 React 自定义渲染器。
+在上一节中，我们介绍了 React reconciler 并实现了一个极简的 React 自定义渲染器。
 
-在本节中我们参考 taro3 的实现，先在在小程序环境中实现一套精简的 DOM API，然后再依赖它实现一个用于渲染小程序的 React 自定义渲染器。在我们的这个例子中，只考虑小程序 `view` 和 `text` 标签。
+在本节中我们将参考 taro3 的实现，先在在小程序环境中实现一套精简的 DOM API，然后再依赖它实现一个用于渲染小程序的 React 自定义渲染器。在我们的这个例子中，只考虑小程序 `view` 和 `text` 标签。
+
+## 在逻辑层中维护 DOM 树信息
 
 整个小程序框架系统分为两部分：逻辑层（App Service）和 视图层（View）。无法在逻辑层使用 JavaScript 来直接操作视图层的 DOM，为此小程序提供了自己的视图层描述语言，如百度智能小程的 SWAN 模板。
 
@@ -20,7 +22,7 @@
 > }
 > ```
 
-taro3 在 @tarojs/runtime 包中定义了 DOM 树具体的数据结构，如下：
+taro3 在 @tarojs/runtime 包中定义了 DOM 树具体的数据结构，如下所示。
 
 ```typescript
 interface MiniElementData {
@@ -54,4 +56,59 @@ interface MiniData {
 }
 ```
 
-小程序页面使用 `Page` 方法，来进行页面的逻辑管理，其中`data` 参数指定页面的初始数据。
+## 在视图层中对 DOM 树信息进行渲染
+
+确定了维护在逻辑层 DOM 树的数据结构后，当要渲染如下这个视图时，对应的逻辑层 DOM 树信息也可以被我们确定了。
+
+```xml
+<view>
+  输入：<input />
+</view>
+```
+
+在逻辑层小程序页面使用 `Page` 方法，来进行页面的逻辑管理，其中 `data` 参数指定页面的初始数据，我们在此初始化 DOM 树信息，如下所示。
+
+```javascript
+Page({
+  data: {
+    root: {
+      children: [{
+        type: 'view',
+        children: [{
+          type: 'words',
+          children: '输入：'
+        }, {
+          type: 'input'
+        }]
+      }]
+    }
+  }
+})
+```
+
+现在让我们来关注视图层，使用小程序自己的视图层描述语言将逻辑层定义的 DOM 树信息渲染为真实的节点。
+
+```xml
+<template is="root" data="{{{ root }}}" />
+
+<template name="root">
+  <block s-for="{{root.children}}" s-key="uid">
+    <template is="{{item.type}}" data="{{{ el: item }}}" />
+  </block>
+</template>
+
+<template name="view">
+	<view class="{{el.class}}" style="{{el.style}}">
+		<block s-for="{{el.children}}" s-key="uid">
+			<block s-if="{{item.type === 'words'}}">{{item.children}}</block>
+			<block s-else>
+        <template is="{{item.type}}" data="{{{ el: item }}}" />
+			</block>
+    </block>
+	</view>
+</template>
+
+<template name="input">
+	<input value="{= el.value =}" bindinput="invokeEventListeners" />
+</template>
+```
