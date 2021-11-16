@@ -86,29 +86,53 @@ Page({
 })
 ```
 
-现在让我们来关注视图层，使用小程序自己的视图层描述语言将逻辑层定义的 DOM 树信息渲染为真实的节点。
+现在让我们来关注视图层，用小程序自己的视图层描述语言将在逻辑层初始化的 DOM 树信息渲染为小程序的节点。渲染过程本质上是从 `root` 开始，对 DOM 树信息进行深度优先遍历，代码如下：
 
 ```xml
+<!-- 从 root 开始 -->
 <template is="root" data="{{{ root }}}" />
 
+<!-- 遍历 root 的 children，并根据 type 选择对应的模板进行渲染 -->
 <template name="root">
   <block s-for="{{root.children}}" s-key="uid">
     <template is="{{item.type}}" data="{{{ el: item }}}" />
   </block>
 </template>
 
+<!-- type 为 view 时使用此模板进行渲染 -->
 <template name="view">
-	<view class="{{el.class}}" style="{{el.style}}">
-		<block s-for="{{el.children}}" s-key="uid">
-			<block s-if="{{item.type === 'words'}}">{{item.children}}</block>
-			<block s-else>
-        <template is="{{item.type}}" data="{{{ el: item }}}" />
-			</block>
+  <!-- 渲染 view 标签 -->
+  <view class="{{el.class}}" style="{{el.style}}">
+    <!-- view 标签为视图容器，需重复遍历 children 的过程，并根据 type 选择对应的模板进行渲染 -->
+    <block s-for="{{el.children}}" s-key="uid">
+      <template is="{{item.type}}" data="{{{ el: item }}}" />
     </block>
-	</view>
+  </view>
 </template>
 
+<!-- type 为 input 时使用此模板进行渲染 -->
 <template name="input">
-	<input value="{= el.value =}" bindinput="invokeEventListeners" />
+  <!-- 渲染 input 标签 -->
+  <input value="{= el.value =}" bindinput="invokeEventListeners" />
 </template>
+
+<!-- type 为 words 时使用此模板进行渲染 -->
+<template name="words">
+  <!-- 渲染纯文本 -->
+  {{ el.children }}
+</template>
+```
+
+到这里，视图层将完全按照逻辑层的 DOM 树信息进行渲染。
+
+## 实现精简的 DOM API
+
+```typescript
+class Document {
+  path = 'root'
+  childNodes = []
+  createElement(name: string): Node
+  createTextNode(text: string): TextElement
+  appendChild(el: Node): void
+}
 ```

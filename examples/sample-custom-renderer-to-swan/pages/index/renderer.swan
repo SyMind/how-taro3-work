@@ -7,14 +7,15 @@
 <template name="view">
 	<view class="{{el.class}}" style="{{el.style}}">
 		<block s-for="{{el.children}}" s-key="uid">
-			<block s-if="{{item.type === 'words'}}">{{item.children}}</block>
-			<block s-else>
-        <template is="{{item.type}}" data="{{{ el: item }}}" />
-			</block>
+			<template is="{{item.type}}" data="{{{ el: item }}}" />
     </block>
 	</view>
 </template>
 
 <template name="input">
 	<input value="{= el.value =}" bindinput="invokeEventListeners" />
+</template>
+
+<template name="words">
+	{{ el.children }}
 </template>
