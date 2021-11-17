@@ -25,23 +25,21 @@
 >   }
 > }
 > ```
-> 具体的数据结构定义位于 taro3 的 `@tarojs/runtime` 包中。
+> 节点树具体的类型声明位于 taro3 的 `@tarojs/runtime` 包中。
 
-我们将节点树定义为如下的结构。
+在我们的例子中，节点树类型定义如下。
 
 ```typescript
 interface MPNode {
-  uid: string;
-  type: 'view' | 'input' | 'words';
-  class?: string;
-  style?: string;
-  children: MPNode[] | string;
+  uid: string; // 节点唯一标识
+  type: 'view' | 'input' | 'words'; // 节点类型
+  class?: string; // 类名
+  style?: string; // 样式
+  children: MPNode[] | string; // 子节点
 }
 ```
 
-## 在视图层中对节点树信息进行渲染
-
-确定了维护在逻辑层节点树的数据结构后，当要渲染如下这个视图时，对应的逻辑层节点树信息也可以被我们确定了。
+确定了节点树结构后，当要渲染如下视图时，对应的数据也就被确定了。
 
 ```xml
 <view>
@@ -49,18 +47,21 @@ interface MPNode {
 </view>
 ```
 
-在逻辑层小程序页面使用 `Page` 方法，来进行页面的逻辑管理，其中 `data` 参数指定页面的初始数据，我们在此初始化节点树信息，如下所示。
+在逻辑层小程序页面使用 `Page` 方法，来进行页面的逻辑管理，其中 `data` 参数指定页面的初始数据，我们在此初始化节点树信息。
 
 ```javascript
 Page({
   data: {
     root: {
       children: [{
+        uid: 'view',
         type: 'view',
         children: [{
+          uid: 'words',
           type: 'words',
-          children: '输入：'
+          children: '输入'
         }, {
+          uid: 'input',
           type: 'input'
         }]
       }]
@@ -69,7 +70,9 @@ Page({
 })
 ```
 
-现在让我们来关注视图层，用小程序自己的视图层描述语言将在逻辑层初始化的节点树信息渲染为小程序的节点。渲染过程本质上是从 `root` 开始，对节点树信息进行深度优先遍历，代码如下：
+## 在视图层中对节点树信息进行渲染
+
+现在让我们来关注视图层，用小程序自己的视图层描述语言将在逻辑层初始化的节点树信息渲染为小程序的节点。渲染过程本质上是从 `root` 开始，对节点树信息进行深度优先遍历，然后根据 `type` 字段渲染对应类型的节点。
 
 ```xml
 <!-- 从 root 开始 -->
@@ -106,14 +109,22 @@ Page({
 </template>
 ```
 
-到这里，视图层将完全按照逻辑层的 DOM 树信息进行渲染。
+此时，视图层将在逻辑层的节点树数据的驱动下进行渲染，可以通过 JavaScript 调用 `setData` 方法改变节点树数据，控制要渲染的节点。例如你可以通过如下代码，来变更『输入』文本节点的内容。
 
-## 实现精简的 DOM API
+```javascript
+setData({
+  `root.children[0].children[0].children`: '你好'
+})
+```
+
+## 封装精简的 DOM API
+
+在此基础上封装用于小程序的 DOM API.
 
 ```typescript
 class Document {
-  path = 'root'
-  childNodes = []
+  private path = 'root'
+  childNodes: Node[] = []
   createElement(name: string): Node
   createTextNode(text: string): TextElement
   appendChild(el: Node): void

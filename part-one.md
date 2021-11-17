@@ -18,7 +18,7 @@ React 中有3个基本块。
 const Reconciler = require('react-reconciler');
 
 const HostConfig = {
-  // 您在这里需要实现一些方法。
+  // 你在这里需要实现一些方法。
   // 以下有更多信息和示例。
 };
 
@@ -32,7 +32,7 @@ const RendererPublicAPI = {
 };
 ```
 
-您需要实现 `HostConfig` 对象，它描述了如何在目标环境（例如 DOM、canvas、控制台或任何您的渲染目标）中处理一些事情。它看起来是这样的：
+你需要实现 `HostConfig` 对象，它描述了如何在目标环境（例如 DOM、canvas、控制台或任何你的渲染目标）中处理一些事情。它看起来是这样的：
 
 ```javascript
 const HostConfig = {
@@ -56,7 +56,7 @@ const HostConfig = {
   createInstance(type) {
     return document.createElement(type)
   },
-  // 与 `createInstance` 相同，但是用于文本节点。如果您的渲染器不支持文本节点，您可以在这里抛出异常。
+  // 与 `createInstance` 相同，但是用于文本节点。如果你的渲染器不支持文本节点，你可以在这里抛出异常。
   createTextInstance(text) {
     return document.createTextNode(text)
   },
