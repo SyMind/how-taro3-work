@@ -1,18 +1,22 @@
-# Part-I
+# 第一部分
 
-这是文章的第一部分，我们将以 taro3 的自定义 React 渲染为起点。先介绍 [`react-reconciler`](https://github.com/facebook/react/tree/master/packages/react-reconciler) 包，然后去看 taro3 是如何使用这个库来创建自己的自定义渲染器，来将组件渲染到小程序中。
+这是文章的第一部分，我们来了解如何创建一个 React 自定义渲染器，以此作为分析 taro3 工作原理的逻辑起点。我们会使用 [`react-reconciler`](https://github.com/facebook/react/tree/master/packages/react-reconciler) 创建一个用于浏览器环境的自定义渲染器，即一个极简的 `react-dom`。
 
-当我们初次遇到 React 时，它是作为一个用于构建用户界面的 JavaScript 库被引入的。当你深入研究其内部原理后，很快便发现它不仅适用于 Web 应用，还适用于 iOS 和 Android 等。事实上，任何支持绘图的系统都可以作为 React 的渲染目标。
+## React 是创建声明式 UI 框架的 LLVM
+
+当我们初次使用 React 时，它是作为一个用于构建用户界面的 JavaScript 库被引入的。当你深入研究其内部原理后，很快便发现它不仅适用于 Web 应用，还适用于 iOS 和 Android 等。事实上，任何支持绘图的系统都可以作为 React 的渲染目标。我十分赞同将 React 称为创建声明式 UI 框架的 LLVM，它使得创建自己的声明式 UI 框架变得容易。
 
 ![react-blocks](./images/react-blocks.png)
 
 React 中有3个基本块。
 
 1. React Component API：提供组件 API 和生命周期。
-2. React-Reconciler：它是核心 diff 算法，管理声明式 UI 背后的命令式更新。Reconciler 找出应用程序 UI 在不同状态之间的变化并在幕后应用这些变化。
+2. React Reconciler：它是核心 diff 算法，管理声明式 UI 背后的命令式更新。Reconciler 找出应用程序 UI 在不同状态之间的变化并在幕后应用这些变化。
 3. React Renderer：渲染器不过是实现了一些 react-reconciler 所需要的函数。react-reconciler 将根据需要调用这些函数，以对最终目标更新变化。如果使用 DOM API 实现这些函数，则目标是 Web 应用。如果你使用 iOS UI Kit API 实现这些函数，目标是 iOS。如果使用 Android UI API 实现这些函数，则目标是 Android。
 
-我们可以从 [`react-reconciler`](https://github.com/facebook/react/tree/master/packages/react-reconciler) 的文档中了解到它的基本使用。
+## React Reconciler
+
+通过 `react-reconciler`，仅需要提供一个 `host config` 对象，就能编写一个自定义渲染器。
 
 ```javascript
 const Reconciler = require('react-reconciler');
@@ -26,13 +30,13 @@ const MyRenderer = Reconciler(HostConfig);
 
 const RendererPublicAPI = {
   render(element, container, callback) {
-    // 调用 MyRenderer.updateContainer() 来调度根节点上的更改。
-    // 请参阅 ReactDOM、React Native 或 React ART 实际案例。
+    // 调用 MyRenderer.updateContainer() 来调度根节点的改变。
+    // 参考 ReactDOM 或 React Native。
   }
 };
 ```
 
-你需要实现 `HostConfig` 对象，它描述了如何在目标环境（例如 DOM、canvas、控制台或任何你的渲染目标）中处理一些事情。它看起来是这样的：
+`host config` 对象描述如何在目标环境（例如 DOM、canvas、控制台或任何你的渲染目标）中处理特定的操作。它看起来是这样的：
 
 ```javascript
 const HostConfig = {
@@ -40,7 +44,6 @@ const HostConfig = {
     // 例如，DOM 渲染器返回一个 DOM 节点
   },
   // ...
-  supportsMutation: true, // it works by mutating nodes
   appendChild(parent, child) {
     // 例如，DOM 渲染器将调用  .appendChild() 方法
   },
@@ -48,44 +51,137 @@ const HostConfig = {
 };
 ```
 
-现在，我们对 `react-reconciler` 有了一个基本的认识，实现一个 React 的自定义渲染器，其实就是实现 `HostConfig` 中的一些方法。让我们看看 taro3 实现的 `HostConfig` 对象，taro3 用于小程序的自定义渲染器位于 `@tarojs/react` 中，以下为其 `HostConfig` 部分代码：
+## 用于浏览器环境的 React 自定义渲染器
+
+现在让我们创建一个用于浏览器环境的 React 自定义渲染器，你可以把它理解为一个极简的 `react-dom`。
 
 ```typescript
 const HostConfig = {
-  // 这个方法应该返回一个新创建的节点。例如，DOM 渲染器会在这里调用 document.createElement(type)，然后从 props 设置属性。
   createInstance(type) {
-    return document.createElement(type)
+    const domElement = document.createElement(type);
+    Object.keys(newProps).forEach(propName => {
+      const propValue = newProps[propName];
+      if (propName === 'children') {
+        if (typeof propValue === 'string' || typeof propValue === 'number') {
+          domElement.textContent = propValue;
+        }
+      } if (propName === 'className') {
+        domElement.setAttribute('class', propValue);
+      } else if (propName !== 'children') {
+        const propValue = newProps[propName];
+        domElement.setAttribute(propName, propValue);
+      }
+    });
+    return domElement;
   },
-  // 与 `createInstance` 相同，但是用于文本节点。如果你的渲染器不支持文本节点，你可以在这里抛出异常。
   createTextInstance(text) {
-    return document.createTextNode(text)
+    return document.createTextNode(text);
   },
-  // 这个方法应该改变父实例，并将子对象添加到它的子对象列表中。例如，在 DOM 中，这将调用 `parentInstance.appendChild(child)` 方法。
-  // 这个方法发生在渲染阶段。它可以修改父实例和子对象，但不能修改任何其他节点。它是在树还在构建时调用的，并没有渲染到屏幕上的实际树。
   appendInitialChild(parent, child) {
-    parent.appendChild(child)
+    parent.appendChild(child);
   },
-  // 这个方法应该改变父实例，并从它的子对象列表中删除子对象。
+  appendChild(parent, child) {
+    parent.appendChild(child);
+  },
   removeChild(parent, child) {
-    parent.removeChild(child)
+    parent.removeChild(child);
   },
-  // 这个方法应该改变文本实例并将其文本内容更新为 `nextText`。这里的文本实例是由 `createTextInstance` 方法创建的节点。
   commitTextUpdate(textInst, oldText, nextText) {
-    textInst.nodeValue = newText
+    textInst.nodeValue = newText;
+  },
+  clearContainer(container) {
+    container.textContent = '';
+  },
+  supportsMutation: true
+};
+
+const ReactReconcilerInst = ReactReconciler(hostConfig);
+
+const ReactDOMMini = {
+  render: (reactElement, domElement, callback) => {
+    if (!domElement._rootContainer) {
+      domElement._rootContainer = ReactReconcilerInst.createContainer(domElement, false);
+    }
+
+    return ReactReconcilerInst.updateContainer(reactElement, domElement._rootContainer, null, callback);
   }
-}
+};
 ```
 
-我想你们可能会有这样的疑问，小程序中哪里来的 `document` 对象，这不是浏览器的 DOM API 么？
+让我们分析一下我们的 `host config` 对象：
 
-是的，小程序环境并不对外提供 DOM API，而 taro3 是自己在小程序环境中实现了一套类 DOM API，其位于 `@tarojs/runtime` 中。这不是本节的内容，我会在下一节中详细讲述。
+**`createInstance`**
 
-```typescript
-import { document } from '@tarojs/runtime'
+这个方法根据 `type` 返回一个新创建的节点。
+
+**`createTextInstance`**
+
+与 `createInstance` 相同，但是用于文本节点。如果你的渲染器不支持文本节点，你可以在这里抛出异常。
+
+**`appendInitialChild`**
+
+这个方法作用于父实例，并将子对象添加到它的子对象列表中。它在树的构建阶段调用，此时虚拟节点树还没有渲染到屏幕上。
+
+**`appendChild`**
+
+与 `appendInitialChild` 相同，但是它在树的提交阶段调用。
+
+**`removeChild`**
+
+这个方法作用于父实例，从它的子对象列表中删除子对象。
+
+**`commitTextUpdate`**
+
+这个方法作用于文本实例，并将其文本内容更新为 `nextText`。这里的文本实例指的是由 `createTextInstance` 方法创建的节点。
+
+**`clearContainer`**
+
+这个方法作用于 `容器` 根节点，并删除它的所有子节点。
+
+**`supportsMutation`**
+
+`true` 为 **可变渲染器** 模式，像浏览器 DOM 拥有 `appendChild` 这种方法的宿主环境使用该模式。
+
+我们在最后封装 `render` 方法，来暴露给用户使用。让我们看看这里发生了什么！
+
+**`ReactReconcilerInst.createContainer`**
+
+这个方法接受一个宿主环境的根容器，返回一个 React Reconciler 内部创建的对象（实际上是 FiberRoot 对象）。
+
+**`ReactReconcilerInst.updateContainer`**
+
+这个函数接收组件、上述 `createContainer` 方法的返回值、父组件、回调函数并触发一次从最顶层开始的更新。
+
+## 验证
+
+我们可以使用一个例子来验证一下我们自己创建的自定义渲染器！
+
+使用 `create-react-app` 创建一个新的 React 项目：
+
+```bash
+npx create-react-app my-app
 ```
 
-现在，不必关心 taro3 是如何在小程序环境中实现了 `document` 对象，我们直接将其替换为浏览器的 DOM API，就是一个极简的 `ReactDOM` 渲染器了。
+修改项目中 `src/index.js` 文件：
 
-具体的示例位于 `examples/sample-custom-renderer-to-dom` 目录中，该示例使用 [`create-react-app`](https://github.com/facebook/create-react-app) 创建，然后将其中的 `ReactDOM` 替换为由我们自己实现的 `ReactDOMMini`。
+```diff
+import React from 'react';
+- import ReactDOM from 'react-dom';
++ import ReactDOMMini from './ReactDOMMini';
+import './index.css';
+import App from './App';
+
+- ReactDOM.render(
++ ReactDOMMini.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+```
+
+启动项目，如果你能看到页面被正常渲染，那么就证明我们编写自定义渲染器成功了！
+
+具体的示例代码位于 [`examples/sample-custom-renderer-to-dom`](https://github.com/SyMind/how-taro3-work/tree/main/examples/sample-custom-renderer-to-dom) 目录中。
 
 [跳转到 Part-II](./part-two.md)
