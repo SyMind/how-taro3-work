@@ -1,78 +1,97 @@
-# Part-II
+# 第二部分
 
-在上一节中，我们介绍了 React reconciler 并实现了一个极简的 React 自定义渲染器。
+在上一部分，我们通过 React Reconciler 实现了一个用于浏览器环境的自定义渲染器。在该部分，我们将创建一个用于小程序环境的自定义渲染器，让我们开始吧！
 
-在本节中我们将参照 taro3 的实现，先在小程序环境中实现一套精简的 DOM API，然后再依赖它实现一个用于渲染小程序的 React 自定义渲染器。在我们的这个例子中，只考虑小程序 `view` 和 `text` 标签。
+## 小程序与浏览器区别
 
-## 在逻辑层中维护节点树数据
+与浏览器不同。小程序使用了双线程模型，包括逻辑层和渲染层。逻辑层执行 JavaSript 代码，控制小程序数据的生成和处理；渲染层执行使用小程序提供的视图层描述语言（如百度智能小程的 SWAN 模板），处理页面的渲染和用户的事件交互行为。
 
-整个小程序框架分为两部分：逻辑层（App Service）和 视图层（View）。我们无法在逻辑层使用 JavaScript 直接操作视图层的节点，只能使用小程序提供的视图层描述语言（如百度智能小程的 SWAN 模板）来构建视图。
+小程序逻辑层并没有一个完整的浏览器对象，因而缺少相关的 DOM API。无法使用 JavaScript 操作页面节点，就无法提供 `host config` 给 React Reconciler 实现自定义渲染器，这是我们第一个需要解决的问题。
 
-为了能逻辑层使用 JavaScript 来操作视图层的节点，taro3 在逻辑层中维护用于渲染页面或组件的节点树数据，然后通过小程序的 `setData` 方法将数据从逻辑层发送至视图层，最终用小程序的视图层描述语言编写的逻辑来渲染出最终的视图。
+## 用 JavaScript 来操作小程序页面中的节点
 
-> 在一个 taro3 项目中使用 `taro build` 命令生成小程序端的代码后，在产出目录下的 `taro.js` 文件中搜索 `setData` 方法，打印它的 `data` 参数，你会看到形如下方结构的数据，这就是 taro3 在逻辑层中维护的节点树数据。
-> ```javascript
-> {
->   root: { // 根节点
->     cn: [ // 子节点数组 Childnodes
->       {
->         cl: '', // 类名 class
->         cn: [], // 子节点数组 Childnodes
->         nn: '', // 节点名 NodeName
->         uid: '' // 节点唯一标识
->       }
->     ]
->   }
-> }
-> ```
-> 节点树具体的类型声明位于 taro3 的 `@tarojs/runtime` 包中。
+Taro3 使用这样的思路来解决这个问题。首先，在逻辑层维护一个描述整个页面的节点树信息。其次，在视图层使用小程序提供的描述语言，根据逻辑层传来的节点树信息，通过一系列的递归操作来渲染出视图。
 
-在我们的例子中，节点树类型定义如下。
+注意，在以下的例子，都只考虑小程序的 `view` 和 `input` 标签。
+
+### 在逻辑层维护节点树信息
+
+为了在逻辑层维护节点树信息，我们需要先确定使用的数据结构：
 
 ```typescript
-interface MPNode {
-  uid: string; // 节点唯一标识
-  type: 'view' | 'input' | 'words'; // 节点类型
-  class?: string; // 类名
-  style?: string; // 样式
-  children: MPNode[] | string; // 子节点
+interface Node {
+  uid: string;
+  nodeName: 'view' | 'input' | '#text';
+  class?: string;
+  childNodes?: Node[] | string;
 }
 ```
 
-确定了节点树结构后，当要渲染如下视图时，对应的数据也就被确定了。
+让我们来关注一下该结构中各个属性：
+
+**`uid`**
+
+节点的唯一标识。
+
+**`nodeName`**
+
+节点名，在我们例子中其值为 `view`、`input` 或 `#text`。其中 `#text` 标识文本节点，请注意其和 `text` 标签的区别！
+
+**`class`**
+
+节点类名。
+
+**`childNodes`**
+
+子节点。nodeName 为 view 时，childNodes 是一个包含其它节点的数组。nodeName 为 text 时，childNodes 是一段字符串。
+
+确定了数据结构之后，如果我们要渲染如下视图，
 
 ```xml
 <view>
-  输入：<input />
+  请输入：<input />
 </view>
 ```
 
-在逻辑层小程序页面使用 `Page` 方法，来进行页面的逻辑管理，其中 `data` 参数指定页面的初始数据，我们在此初始化节点树信息。
+则逻辑层维护的节点树信息为：
+
+```javascript
+const nodes = [{
+  uid: '_n_0',
+  nodeName: 'view',
+  childNodes: [{
+    uid: '_n_1',
+    nodeName: '#text',
+    childNodes: '输入'
+  }, {
+    uid: '_n_2',
+    nodeName: 'input'
+  }]
+}];
+```
+
+在小程序中用 `Page` 函数来注册一个页面，它接受一个 object 参数，其指定页面的初始数据、生命周期函数、事件处理函数等。我们可以在 `onLoad` 页面加载的这个生命周期中，通过 `setData` 方法将节点树信息从逻辑层发送给视图层。
 
 ```javascript
 Page({
   data: {
     root: {
-      children: [{
-        uid: 'view',
-        type: 'view',
-        children: [{
-          uid: 'words',
-          type: 'words',
-          children: '输入'
-        }, {
-          uid: 'input',
-          type: 'input'
-        }]
-      }]
+      childNodes: []
     }
+  },
+  onLoad() {
+    this.setData({
+      'root.childNodes': nodes
+    });
   }
-})
+});
 ```
 
-## 在视图层中对节点树信息进行渲染
+注意，上述代码的初始数据中定义了一个 `root` 属性，`onLoad` 生命周期中将节点树信息赋给了 `root.childNodes`。其目的有二，一是为了方便接下来的视图层进行遍历，二是为了与 Taro3 中定义的数据结构保持一致。
 
-现在让我们来关注视图层，用小程序自己的视图层描述语言将在逻辑层初始化的节点树信息渲染为小程序的节点。渲染过程本质上是从 `root` 开始，对节点树信息进行深度优先遍历，然后根据 `type` 字段渲染对应类型的节点。
+### 在视图层中对节点树信息进行渲染
+
+在视图层中，我们将用小程序自己的视图层描述语言根据逻辑层传来的节点树信息来渲染小程序的标签。渲染过程本质上是对节点树信息进行深度优先遍历，根据 `nodeName` 属性渲染出相应的标签，并添加上其余属性。
 
 ```xml
 <!-- 从 root 开始 -->
@@ -109,15 +128,7 @@ Page({
 </template>
 ```
 
-此时，视图层将在逻辑层的节点树数据的驱动下进行渲染，可以通过 JavaScript 调用 `setData` 方法改变节点树数据，控制要渲染的节点。例如你可以通过如下代码，来变更『输入』文本节点的内容。
-
-```javascript
-setData({
-  `root.children[0].children[0].children`: '你好'
-})
-```
-
-## 封装精简的 DOM API
+### 抽象！抽象！抽象！
 
 在此基础上封装用于小程序的 DOM API.
 
