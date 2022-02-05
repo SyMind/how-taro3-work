@@ -7,7 +7,7 @@
 
 ### [第一部分](./part-one.md)
 
-在第一部分，我们将使用 [`react-reconciler`](https://github.com/facebook/react/tree/master/packages/react-reconciler) 创建一个用于浏览器环境的 React 自定义渲染器，即一个简略的 React-DOM。
+在第一部分，我们将使用 [`react-reconciler`](https://github.com/facebook/react/tree/master/packages/react-reconciler) 创建一个用于浏览器环境的 React 自定义渲染器，即一个极简的 React-DOM。
 
 ### [第二部分](./part-two.md)
 
