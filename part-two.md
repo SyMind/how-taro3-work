@@ -154,13 +154,40 @@ this.setData({
 
 为了让使用更加简便，可以参照我们所熟悉的浏览器 DOM API 将上述的操作进行抽象，来隐藏内部的具体实现。
 
+我们实现的 `Document` 类非常简单，仅实现了以下 4 个方法。
+
 ```typescript
 class Document {
-  private path = 'root'
-  childNodes: Node[] = []
-  createElement(name: string): TaroElement
-  createTextNode(text: string): TextElement
+  createElement(name: string): Node
+  createTextNode(text: string): WordsElement
   appendChild(el: Node): void
   getElementById(id: string): void
 }
+```
+
+需要注意的是，与 Taro 的实现不同，在我们的实现中，小程序的每个页面都与一个 `Document` 对象一一对应，因此在每个页面的 `onInit` 生命周期中我们都将实例化一个 `Document` 对象。
+
+## 用于小程序的自定义渲染器
+
+参照上一部分我们创建的用于浏览器环境的自定义渲染器，现在我们只需将原本由浏览器提供的 `document` 对象替换为上面实现的，可以轻松地实现用于小程序的自定义渲染器。
+
+还有些额外的问题需要我们来考虑，一个完整的小程序应用由一个 `App` 实例和多个 `Page` 实例构成，该如何进行组织来将它们与 React 进行关联。
+
+1. 将每个 `Page` 视为一个独立的 React 应用，一个小程序由多个独立的 React 应用构成。
+2. 将整个小程序视为一个 `React` 应用，`App` 对应与一个 App 组件关联，每个 `Page` 与一个 Page 组件关联。
+
+相较于第1个方案，第2个方案拥有在 App 组件中使用 Context 进行全局的状态管理的能力，因此 Taro 和本文选择第2个方案，因此我们创建的自定义渲染器将暴露如下两个方法：
+
+```javascript
+const ReactSwan = {
+  render(appElement, callback) {
+    if (!appContainer) {
+        appContainer = ReactReconcilerInst.createContainer(null, false);
+    }
+    return ReactReconcilerInst.updateContainer(appElement, appContainer, null, callback);
+  },
+  createPage(children, container, key) {
+    return ReactReconcilerInst.createPortal(children, container, null, key);
+  }
+};
 ```
