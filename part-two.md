@@ -22,10 +22,28 @@ Taro3 使用这样的思路来突破小程序的限制，让使用 JavaScript �
 
 ```typescript
 interface Node {
-  uid: string; // 节点唯一标识。
-  nodeName: 'view' | 'input' | '#text'; // 节点名，在我们例子中其值为 `view`、`input` 或 `#text`。其中 `#text` 标识文本节点，请注意其和 `text` 标签的区别！
-  class?: string; // 节点类名。
-  childNodes?: Node[] | string; // 子节点。nodeName 为 view 时，childNodes 是一个包含其它节点的数组。nodeName 为 text 时，childNodes 是一段字符串。
+  /**
+   * 节点唯一标识。
+   */
+  uid: string;
+
+  /**
+   * 节点名，在我们例子中其值为 `view`、`input` 或 `#text`。
+   * 其中 `#text` 表示文本节点，请注意其和 `text` 标签的区别！
+   */
+  nodeName: 'view' | 'input' | '#text';
+ 
+  /**
+   * 节点类名。
+   */
+  class?: string;。
+
+  /**
+   * 子节点。
+   * nodeName 为 view 时，childNodes 是一个包含其它节点的数组。
+   * nodeName 为 text 时，childNodes 是一段字符串。
+   */
+  childNodes?: Node[] | string;
 }
 ```
 
@@ -134,10 +152,10 @@ this.setData({
 
 ### 抽象！抽象！抽象！
 
-在此基础上封装用于小程序的 DOM API.
+为了让使用更加简便，可以参照我们所熟悉的浏览器 DOM API 将上述的操作进行抽象，来隐藏内部的具体实现。
 
 ```typescript
-class TaroDocument {
+class Document {
   private path = 'root'
   childNodes: Node[] = []
   createElement(name: string): TaroElement
